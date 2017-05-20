@@ -79,13 +79,46 @@ class Task(object):
     def run(self,o):
         recorded=self.record(o)
         signal=self.s1(o)
+        avg=self.getAverage(o)
+
+        if int(time.time())-self.getCurrentNotificationTime() <= 5*60:
+            # 5分钟通知一次
+            return None
 
         if(signal==1):
-            return "#{}[s1]# 发现一波短线机会 \n\n {}".format(o.coin,self.reportCurrentStates(o))
+            self.markAsNotification()
+            return "#{}[s1]# 发现一波短线机会，平均高为{} \n\n {}".format(o.coin,avg[0],self.reportCurrentStates(o))
+
         if(signal==-1):
-            return "#{}[s1]# 糟糕，情况不对，请尽快平仓\n\n {}".format(o.coin,self.reportCurrentStates(o))
+            self.markAsNotification()
+            return "#{}[s1]# 糟糕，情况不对，平均低位{}, 请尽快平仓\n\n {}".format(o.coin,avg[1],self.reportCurrentStates(o))
         return None
 
+
+    def markAsNotification(self):
+        # clean
+        self.store.execute("DELETE FROM notification where 1=1")
+
+        sql="""
+        INSERT INTO notification (`current_time_cursor`) values(%s)
+        """
+        return self.store.execute(sql,(int(time.time())))
+
+
+
+
+    def getCurrentNotificationTime(self):
+
+        sql="""
+        SELECT current_time_cursor FROM notification LIMIT 1
+        """
+        curr=self.store.execute(sql)
+        if curr is not None:
+            currTime=curr[0][0]
+        else:
+            currTime=0
+
+        return currTime
 
     def record(self,o):
         # 记录当前时间价格
