@@ -1,9 +1,21 @@
 #!/usr/bin/python
+#-*- coding:utf-8 -*-
 
 import requests
 import json
 import time
+import pymysql
 
+
+CONN=pymysql.connect(
+                host="127.0.0.1",
+                user="root",
+                passwd="",
+                port=3306,
+                db="innovation")
+
+
+# BTC core
 class Btc(object):
     def __init__(self,coin):
         self.coin=coin
@@ -23,15 +35,100 @@ class Btc(object):
     def __doGet(self,url):
         return json.loads(requests.get(url).content.decode())
 
+# 监视器
 class WatchDog(object):
     def watching(self,coin,task):
-        task.run(Btc(coin))
+        return task.run(Btc(coin))
+
+#  存储器
+class Store(object):
+    def __init__(self):
+        self.store=CONN
+
+    def execute(self,query,p=None):
+        try:
+            cursor=self.store.cursor()
+            if p is not None:
+                cursor.execute(query,p)
+            else:
+                cursor.execute(query)
+            res=cursor.fetchall()
+            cursor.close()
+        except Exception as e:
+            print(e)
+            res=None
+
+        self.store.commit()
+        return res
+
+
+
+class Master(object):
+    def buy(self):
+        pass
+
+    def sell(self):
+        pass
+
+
 # 策略组合
 class Task(object):
-    def run(self,o):
-        return self.reportCurrentStats(o)
+    def __init__(self):
+        self.store=Store()
 
-    def reportCurrentStats(self,o):
+    def run(self,o):
+        recorded=self.record(o)
+        signal=self.s1(o)
+
+        if(signal==1):
+            return "#{}[s1]# 发现一波短线机会 \n\n {}".format(o.coin,self.reportCurrentStates(o))
+        if(signal==-1):
+            return "#{}[s1]# 糟糕，情况不对，请尽快平仓\n\n {}".format(o.coin,self.reportCurrentStates(o))
+        return None
+
+
+    def record(self,o):
+        # 记录当前时间价格
+         record=o.getStates()
+         record['type']=o.coin
+
+
+         data=[str(x) for x in record.values()]
+         sql="""
+           INSERT INTO `b` (`high`,`low`,`buy`,`sell`,`last`,`vol`,`time`,`type`) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
+         """
+
+         return self.store.execute(sql,tuple(data))
+
+    def getAverage(self,o,day=5):
+        # current time
+        target=int(time.time())-day*24*60*60
+
+        sql="""
+        SELECT AVG(high),AVG(low) FROM b WHERE `time` > {} AND `type`= '{}'
+        """.format(target,o.coin)
+        avgPrice=self.store.execute(sql)
+        return avgPrice[0]
+
+
+    # 短线交易策略 s1
+    # v1.0
+    # 检测当前的买入点是否在平均五日线上方，则释放买入信号
+    # 检测当前的卖出掉是否在平均五日线的下方，则释放卖出信号
+    # TODO 增加浮动策略
+    def s1(self,o):
+        signal=0
+        states=o.getStates()
+        avgPrice=self.getAverage(o,5)
+        if (avgPrice[0]!=None and states['high']>=avgPrice[0]):
+            signal=1
+        if(avgPrice[1]!=None and states['low']<=avgPrice[1]):
+            signal=-1
+        return signal
+
+
+
+    def reportCurrentStates(self,o):
         states=o.getStates()
         msg=" 最高价: {}\n 最低价：{} \n 买一价：{}\n 卖一价：{}\n 最新成交价:{} \n 成交量：{}\n 时间：{}".format(
         states['high'],
@@ -42,6 +139,9 @@ class Task(object):
         states['vol'],
         time.strftime("%Y-%m-%d %H:%M:%S",time.localtime(states['time']))
         )
+
         return msg
 
-(WatchDog()).watching("btc",Task())
+
+
+(WatchDog()).watching("ltc",Task())
