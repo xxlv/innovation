@@ -5,16 +5,24 @@ import requests
 import json
 import time
 import pymysql
+import os
+
+
+def say(w):
+
+    shell="""
+    say -v Mei-Jia "{}"
+    """.format(w)
+    os.system(shell)
+
 
 
 CONN=pymysql.connect(
                 host="127.0.0.1",
                 user="root",
-                passwd="",
+                passwd=os.environ['DB_PASS'],
                 port=3306,
                 db="innovation")
-
-
 # BTC core
 class Btc(object):
     def __init__(self,coin):
@@ -63,14 +71,6 @@ class Store(object):
 
 
 
-class Master(object):
-    def buy(self):
-        pass
-
-    def sell(self):
-        pass
-
-
 # 策略组合
 class Task(object):
     def __init__(self):
@@ -107,7 +107,6 @@ class Task(object):
 
 
     def getCurrentNotificationTime(self):
-
         sql="""
         SELECT current_time_cursor FROM notification LIMIT 1
         """
@@ -199,6 +198,8 @@ class Task(object):
         # 实时收益率
         rate_of_return=(curr_draw/nu_of_keep_price)*100
 
+        print(curr_draw)
+
         if int(time.time())-self.getCurrentNotificationTime() <= 5*60:
             # 5分钟通知一次
             return ""
@@ -229,5 +230,4 @@ class Task(object):
         return msg
 
 
-# demo
 print((WatchDog()).watching("ltc",Task()))
