@@ -76,23 +76,22 @@ class Task(object):
     def __init__(self):
         self.store=Store()
 
+
     def run(self,o):
+        msg=[]
+        # record
         recorded=self.record(o)
-        signal=self.s1(o)
-        avg=self.getAverage(o)
+        s1_msg=self.s1(o)
+        s2_dog_msg=self.s2_of_dog(o)
 
-        if int(time.time())-self.getCurrentNotificationTime() <= 5*60:
-            # 5分钟通知一次
-            return None
+        if s1_msg:
+            msg.append(s1_msg)
+        if s2_dog_msg:
+            msg.append(s2_dog_msg)
 
-        if(signal==1):
-            self.markAsNotification()
-            return "#{}[s1]# 发现一波短线机会，平均高为{} \n\n {}".format(o.coin,avg[0],self.reportCurrentStates(o))
+        return "".join(msg)
 
-        if(signal==-1):
-            self.markAsNotification()
-            return "#{}[s1]# 糟糕，情况不对，平均低位{}, 请尽快平仓\n\n {}".format(o.coin,avg[1],self.reportCurrentStates(o))
-        return None
+
 
 
     def markAsNotification(self):
@@ -124,8 +123,6 @@ class Task(object):
         # 记录当前时间价格
          record=o.getStates()
          record['type']=o.coin
-
-
          data=[str(x) for x in record.values()]
          sql="""
            INSERT INTO `b` (`high`,`low`,`buy`,`sell`,`last`,`vol`,`time`,`type`) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
@@ -157,10 +154,66 @@ class Task(object):
             signal=1
         if(avgPrice[1]!=None and states['low']<=avgPrice[1]):
             signal=-1
-        return signal
+
+        if int(time.time())-self.getCurrentNotificationTime() <= 5*60:
+            # 5分钟通知一次
+            return ""
+
+        if(signal==1):
+            self.markAsNotification()
+            return "#{}[s1]# 发现一波短线机会，平均高为{} \n\n {}".format(o.coin,avgPrice[0],self.reportCurrentStates(o))
+
+        if(signal==-1):
+            self.markAsNotification()
+            return "#{}[s1]# 糟糕，情况不对，平均低位{}, 请尽快平仓\n\n {}".format(o.coin,avgPrice[1],self.reportCurrentStates(o))
+
+        return ""
 
 
+    # 狗狗币策略
+    # 损失接近止损点 则警告卖出
+    # 收益超过止盈点 则提示
+    def s2_of_dog(self,o):
 
+        # 止损点
+        miss_point=-50
+        # 止盈点
+        warm_point=200
+        msg=[]
+        o.coin='doge'
+        curr=o.getStates()
+        sell=curr['buy']
+
+        # 持仓价格
+        current_keep_price=0.0126
+        # 手续费率
+        p_of_keep=0.001
+        # 持仓数
+        nu_of_keep=39650.554
+        # 持仓成本
+        nu_of_keep_price=nu_of_keep*current_keep_price
+        # 手续费
+        nu_of_keep_miss_price=nu_of_keep_price*p_of_keep
+        # 当前盈利
+        curr_draw=(nu_of_keep*sell)-(nu_of_keep_price+nu_of_keep_miss_price)
+        # 实时收益率
+        rate_of_return=(curr_draw/nu_of_keep_price)*100
+
+        if int(time.time())-self.getCurrentNotificationTime() <= 5*60:
+            # 5分钟通知一次
+            return ""
+
+        if(curr_draw > warm_point or rate_of_return > 5):
+            msg.append("恭喜，当前收益为{} ,收益率为{}".format(curr_draw,rate_of_return))
+            self.markAsNotification()
+
+        if(curr_draw < miss_point):
+            msg.append("不好，损失({}) 已抵达止损点{},请尽快处理。收益率为{}".format(curr_draw,miss_point,rate_of_return))
+            self.markAsNotification()
+
+        return "".join(msg)
+
+    #  报告
     def reportCurrentStates(self,o):
         states=o.getStates()
         msg=" 最高价: {}\n 最低价：{} \n 买一价：{}\n 卖一价：{}\n 最新成交价:{} \n 成交量：{}\n 时间：{}".format(
@@ -176,5 +229,5 @@ class Task(object):
         return msg
 
 
-
-(WatchDog()).watching("ltc",Task())
+# demo
+print((WatchDog()).watching("ltc",Task()))
