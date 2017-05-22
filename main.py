@@ -37,13 +37,13 @@ if __name__=="__main__":
         elif s.isSell():
             sys.stdout.write("-")
             data=t.sell(s)
+            print("即将 自动在价位{}卖出数量{} 个狗狗币，预计 赚 {} RMB".format(s.price,s.nu,s.money))
 
             if(data['result']):
                 print("自动在价位{}卖出数量{} 个狗狗币，赚了 {} RMB".format(s.price,s.nu,s.money))
-                strategy.self.set_curr_keep_price_empty()
-                print(data)
+                strategy.set_curr_keep_price_empty()
 
         else:
             sys.stdout.write(".")
         sys.stdout.flush()
-        time.sleep(3)
+        time.sleep(5)

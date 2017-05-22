@@ -6,6 +6,8 @@ import json
 import time
 import pymysql
 import os
+from util import http_get
+import json
 
 # BTC core
 class Btc(object):
@@ -25,4 +27,4 @@ class Btc(object):
         return data
 
     def __doGet(self,url):
-        return json.loads(requests.get(url).content.decode())
+        return json.loads(http_get(url))

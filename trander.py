@@ -9,6 +9,8 @@ import time
 import os
 import json
 
+from util import http_post
+
 # 操盘手
 class Trander(object):
 
@@ -90,4 +92,4 @@ class Trander(object):
 
     # POST
     def _post(self,url,params):
-        return requests.post(url,params).content.decode('utf-8')
+        return http_post(url,params)

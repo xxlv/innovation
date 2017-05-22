@@ -2,6 +2,7 @@
 #-*- coding:utf-8 -*-
 
 import time
+import sys
 from store import Store
 from signal import Signal
 from trander import Trander
@@ -9,7 +10,7 @@ from trander import Trander
 class DogStrategy(object):
 
     def __init__(self):
-        self.buyPoint=0.0194
+        self.buyPoint=0.0225
         self.p_of_keep=0.001
         self.store=Store()
 
@@ -53,7 +54,7 @@ class DogStrategy(object):
 
         price=curr['sell']
         curr_keep=self.get_curr_keep()
-        curr_keep_nu=int(curr_keep['nu'])
+        curr_keep_nu=float(curr_keep['nu'])
         curr_keep_price=float(curr_keep['price'])
         money=int(price*curr_keep_nu-curr_keep_price*curr_keep_nu)-int(price*curr_keep_nu-curr_keep_price*curr_keep_nu)*self.p_of_keep
         return money
@@ -123,17 +124,20 @@ class DogStrategy(object):
                 op=1
 
         money=self.get_how_much_money_i_make(o)
+        if money !=0:
+            print(" {}/{}￥ ".format(curr['sell'],money))
+
         # print(curr_keep_price- curr['sell'])
         # print(curr_keep_price)
         # print(curr['sell'])
-        if(money > 10):
+        if(money >= 7.9):
             # 计算收益
             price=curr['sell']
             curr_keep=self.get_curr_keep()
-            curr_keep_nu=int(curr_keep['nu'])
+            curr_keep_nu=float(curr_keep['nu'])
             curr_keep_price=float(curr_keep['price'])
             money=int(price*curr_keep_nu-curr_keep_price*curr_keep_nu)
-            nu=curr_keep_nu
+            nu=curr_keep_nu-curr_keep_nu*p_of_keep
             # self.set_curr_keep_price_empty()
             op=-1
 
