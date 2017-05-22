@@ -7,10 +7,10 @@ import requests
 import hmac
 import time
 import os
-
+import json
 
 # 操盘手
-class Trandder(object):
+class Trander(object):
 
     # 初始化配置
     def __init__(self,coin='doge'):
@@ -23,7 +23,6 @@ class Trandder(object):
 
     # 设置币种
     def setCoin(self,coin):
-
         self.coin=coin
 
     # 参数打包
@@ -55,31 +54,30 @@ class Trandder(object):
         api=self.api.format('balance/')
         package=self._package(param)
         data=self._post(api,package)
-        return data.content.decode('utf-8')
+        return json.loads(data)
 
 
 
     # 挂单买入
-    def buy(self,amount,price):
+    def buy(self,signal):
 
         param=dict()
-        param['amount']=amount
-        param['price']=price
-        api=self.api.format('buy/')
-        package=self._package(param)
-        data=self._post(api,package)
-        return data
+        param['amount']=signal.nu
+        param['price']=signal.price
+
+        data=self._post(self.api.format('buy/'),self._package(param))
+        return json.loads(data)
+
 
     # 挂单卖出
-    def sell(self):
+    def sell(self,signal):
 
         param=dict()
-        param['amount']=amount
-        param['price']=price
-        api=self.api.format('sell/')
-        package=self._package(param)
-        data=self._post(api,package)
-        return data
+        param['amount']=signal.nu
+        param['price']=signal.price
+        data=self._post(self.api.format('sell/'),self._package(param))
+
+        return json.loads(data)
 
     # 取消挂单
     def cancel_order(self,order_id):
@@ -92,9 +90,4 @@ class Trandder(object):
 
     # POST
     def _post(self,url,params):
-        return requests.post(url,params)
-
-
-t=Trandder()
-info=t.balance()
-print(info)
+        return requests.post(url,params).content.decode('utf-8')
